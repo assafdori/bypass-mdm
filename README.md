@@ -4,7 +4,7 @@
 
 - Mac's hard drive must be wiped and MacOS must be re-installed via a USB Drive before starting the setup below.
 
-### Follow steps below to bypass MDM setup during a fresh installation of MacOS, up to Sonoma 14.3.1 (23D60).
+#### Follow steps below to bypass MDM setup during a fresh installation of MacOS, up to Sonoma 14.3.1 (23D60).
 
 1. Long press Power button to forcefully shut down your Mac.
 
