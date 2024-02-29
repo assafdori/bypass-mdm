@@ -2,7 +2,7 @@
 
 #### Prerequisite ⚠️
 
-- **The hard drive must be erased via Recovery Mode and MacOS must be re-installed via USB**
+- **The hard drive must be erased via Recovery Mode and MacOS must be re-installed via USB.**
 
 #### Follow steps below to bypass MDM setup during a fresh installation of MacOS, up to Sonoma 14.3.1 (23D60).
 
