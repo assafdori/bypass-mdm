@@ -6,9 +6,7 @@
 
 #### Follow steps below to bypass MDM setup during a fresh installation of MacOS, up to Sonoma 14.3.1 (23D60).
 
-```
-Upon arriving to the setup stage of forced MDM enrollement:
-```
+> Upon arriving to the setup stage of forced MDM enrollement:
 
 1. Long press Power button to forcefully shut down your Mac.
 
