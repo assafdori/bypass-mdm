@@ -74,7 +74,7 @@ select opt in "${options[@]}"; do
 		echo -e "\n\t${GREEN}Bypass on Recovery${NC}\n"
 
 		# Mount Volumes
-		echo -e "${BLUE}Mounting volumes...${NC}"
+		echo -e "${BLUE}Mounting volumes, please wait.${NC}"
 		# Mount System Volume
 		systemVolumePath=$(defineVolumePath "$DEFAULT_SYSTEM_VOLUME" "System")
 		mountVolume "$systemVolumePath"
@@ -92,12 +92,12 @@ select opt in "${options[@]}"; do
 		defaultUID="501"
 		if ! dscl -f "$dscl_path" localhost -list "$localUserDirPath" UniqueID | grep -q "\<$defaultUID\>"; then
 			echo -e "${CYAN}Create a new user{NC}"
-			echo -e "${CYAN}Press Enter to continue, Note: Leaving it blank will default to the automatic user${NC}"
+			echo -e "${CYAN}Press Enter to continue, Note: Leaving it blank will default 'Apple' user${NC}"
 			echo -e "${CYAN}Enter Full Name (Default: Apple)${NC}"
 			read -rp "Full name: " fullName
 			fullName="${fullName:=Apple}"
 
-			echo -e "${CYAN}Username${NC} ${RED}WRITE WITHOUT SPACES${NC} ${GREEN}(Default: Apple)${NC}"
+			echo -e "${CYAN}Username${NC} ${RED}NO SPACES ALLOWED${NC} ${GREEN}(Default: Apple)${NC}"
 			read -rp "Username: " username
 			username="${username:=Apple}"
 
@@ -121,13 +121,13 @@ select opt in "${options[@]}"; do
 		fi
 
 		# Block MDM hosts
-		echo -e "${BLUE}Blocking MDM hosts...${NC}"
+		echo -e "${BLUE}Blocking MDM domains, please wait.${NC}"
 		hostsPath="$systemVolumePath/etc/hosts"
 		blockedDomains=("deviceenrollment.apple.com" "mdmenrollment.apple.com" "iprofiles.apple.com")
 		for domain in "${blockedDomains[@]}"; do
 			echo "0.0.0.0 $domain" >>"$hostsPath"
 		done
-		echo -e "${GREEN}Successfully blocked host${NC}\n"
+		echo -e "${GREEN}Domains have been blocked.${NC}\n"
 
 		# Remove config profiles
 		echo -e "${BLUE}Remove config profiles${NC}"
@@ -140,7 +140,7 @@ select opt in "${options[@]}"; do
 		echo -e "${GREEN}Config profiles removed${NC}\n"
 
 		echo -e "${GREEN}------ Autobypassed Successfully ------${NC}"
-		echo -e "${CYAN}------ Exit Terminal. Reboot Macbook. Asiko is GOAT. ------${NC}"
+		echo -e "${CYAN}------ Exit Terminal & reboot your Mac. Asiko is GOAT. ------${NC}"
 		break
 		;;
 
@@ -172,4 +172,3 @@ select opt in "${options[@]}"; do
 		;;
 	esac
 done
-
