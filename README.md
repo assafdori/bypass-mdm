@@ -14,11 +14,11 @@
 
 3. Connect to WiFi to activate your Mac.
 
-4. Open Safari
+4. Enter Recovery Mode & Open Safari.
 
 5. Navigate to https://www.github.com/assafdori/bypass-mdm
 
-6. Copy the script below
+6. Copy the script below:
 
 ```zsh
 curl https://raw.githubusercontent.com/assafdori/bypass-mdm/main/bypass-mdm.sh -o test.sh && chmod +x ./test.sh && ./test.sh
