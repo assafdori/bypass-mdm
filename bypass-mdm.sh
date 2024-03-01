@@ -14,23 +14,22 @@ options=("Bypass MDM from Recovery" "Reboot")
 select opt in "${options[@]}"; do
     case $opt in
     "Bypass MDM from Recovery")
-        echo -e "${YEL}Bypass from Recovery"
+        echo -e "${YEL}Bypass MDM from Recovery"
         if [ -d "/Volumes/Macintosh HD - Data" ]; then
                diskutil rename "Macintosh HD - Data" "Data"
         fi
-        echo -e "${NC}Create a new user"
-        echo -e "${NC}Press Enter to continue, leaving it blank will default to the default user ('Apple')"
-          echo -e "Enter Temporary Name (Default: Apple)"
+        echo -e "${NC}Create a Temporary User"
+          echo -e "Enter Temporary Fullname (Default is 'Apple')"
         read realName
           realName="${realName:= Apple}"
-        echo -e "${NC}Enter Temporary Username ${RED}No Spaces Allowed ${NC}(Default: Apple)"
+        echo -e "${NC}Enter Temporary Username ${RED}A-Z ONLY, NO SPACES ALLOWED ${NC}(Default is 'Apple')"
           read username
         username="${username:=Apple}"
-          echo -e "${NC}Enter the password (Default: 1234)"
+          echo -e "${NC}Enter Temporary Password (Default is '1234')"
         read passw
           passw="${passw:=1234}"
         dscl_path='/Volumes/Data/private/var/db/dslocal/nodes/Default'
-        echo -e "${GREEN}Creating User"
+        echo -e "${GREEN}Creating Temporary User"
           # Create user
         dscl -f "$dscl_path" localhost -create "/Local/Default/Users/$username"
           dscl -f "$dscl_path" localhost -create "/Local/Default/Users/$username" UserShell "/bin/zsh"
@@ -45,15 +44,15 @@ select opt in "${options[@]}"; do
         echo "0.0.0.0 deviceenrollment.apple.com" >>/Volumes/Macintosh\ HD/etc/hosts
         echo "0.0.0.0 mdmenrollment.apple.com" >>/Volumes/Macintosh\ HD/etc/hosts
         echo "0.0.0.0 iprofiles.apple.com" >>/Volumes/Macintosh\ HD/etc/hosts
-        echo -e "${GREEN}Successfully blocked MDM domains"
-        echo "Removing config profile"
+        echo -e "${GRN}Successfully blocked MDM domains"
+        echo -e "${NC}Removing configuration profiles"
       touch /Volumes/Data/private/var/db/.AppleSetupDone
         rm -rf /Volumes/Macintosh\ HD/var/db/ConfigurationProfiles/Settings/.cloudConfigHasActivationRecord
     rm -rf /Volumes/Macintosh\ HD/var/db/ConfigurationProfiles/Settings/.cloudConfigRecordFound
     touch /Volumes/Macintosh\ HD/var/db/ConfigurationProfiles/Settings/.cloudConfigProfileInstalled
     touch /Volumes/Macintosh\ HD/var/db/ConfigurationProfiles/Settings/.cloudConfigRecordNotFound
-    echo -e "${CYAN}MDM Bypass Done.${NC}"
-    echo -e "${CYAN}Please exit terminal and reboot.${NC}"
+    echo -e "${GRN}MDM enrollement has been bypassed!${NC}"
+    echo -e "${NC}Exit terminal and reboot your Mac.${NC}"
         break
         ;;
     "Disable Notification (SIP)")
