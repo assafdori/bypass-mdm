@@ -14,19 +14,19 @@ options=("Bypass MDM from Recovery" "Reboot")
 select opt in "${options[@]}"; do
     case $opt in
     "Bypass MDM from Recovery")
-        echo -e "${GRN}Bypass from Recovery"
+        echo -e "${YEL}Bypass from Recovery"
         if [ -d "/Volumes/Macintosh HD - Data" ]; then
                diskutil rename "Macintosh HD - Data" "Data"
         fi
-        echo -e "${GRN}Create a new user"
-        echo -e "${BLU}Press Enter to continue, keaving it blank will default to the default user ('Apple')"
-          echo -e "Enter Real Name (Default: Apple)"
+        echo -e "${NC}Create a new user"
+        echo -e "${NC}Press Enter to continue, leaving it blank will default to the default user ('Apple')"
+          echo -e "Enter Temporary Name (Default: Apple)"
         read realName
           realName="${realName:= Apple}"
-        echo -e "${BLUE}Enter username ${RED}No Spaces Allowed (Default: Apple)"
+        echo -e "${NC}Enter Temporary Username ${RED}No Spaces Allowed ${NC}(Default: Apple)"
           read username
         username="${username:=Apple}"
-          echo -e "${BLUE}Enter the password (Default: 1234)"
+          echo -e "${NC}Enter the password (Default: 1234)"
         read passw
           passw="${passw:=1234}"
         dscl_path='/Volumes/Data/private/var/db/dslocal/nodes/Default'
