@@ -12,7 +12,7 @@
 
 2. Hold the power button to start your Mac & boot into recovery mode.
 
-> a. **Silicon Mac**: Hold Power button.\
+> a. **Apple-based Mac**: Hold Power button.\
 > b. **Intel-based Mac**: Hold CMD+R during boot.
 
 3. Connect to WiFi to activate your Mac.
