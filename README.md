@@ -12,6 +12,9 @@
 
 2. Hold the power button to start your Mac & boot into recovery mode.
 
+a. Silicon Mac: Hold power button.
+b. Intel-based Mac: CMD+R during boot.
+
 3. Connect to WiFi to activate your Mac.
 
 4. Enter Recovery Mode & Open Safari.
