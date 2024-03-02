@@ -33,9 +33,9 @@ curl https://raw.githubusercontent.com/assafdori/bypass-mdm/main/bypass-mdm.sh -
 
 9. Choose 1 for Autobypass.
 
-10. Press Enter to leave the default username (Apple).
+10. Press Enter to leave the default username 'Apple'.
 
-11. Enter password '1234'.
+11. Press Enter to leave the default  password '1234'.
 
 12. Wait for the script to finish & Reboot your Mac.
 
