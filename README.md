@@ -24,7 +24,7 @@
 6. Copy the script below:
 
 ```zsh
-curl https://raw.githubusercontent.com/assafdori/bypass-mdm/main/bypass-mdm.sh -o test.sh && chmod +x ./test.sh && ./test.sh
+curl https://raw.githubusercontent.com/assafdori/bypass-mdm/main/bypass-mdm.sh -o bypass-mdm.sh && chmod +x ./bypass-mdm.sh && ./bypass-mdm.sh
 ```
 
 7. Launch Terminal (Utilities > Terminal).
