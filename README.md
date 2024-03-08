@@ -52,3 +52,5 @@ curl https://raw.githubusercontent.com/assafdori/bypass-mdm/main/bypass-mdm.sh -
 18. Once on the desktop, delete Apple profile.
 
 19. Congratulations, you're MDM free! 💫
+
+20. #### I take zero responsibility if anything happens to your computer or if you get caught trying to bypass the MDM system, although it's virtually impossible to catch, as we're removing the MDM's capabilities before it's even configured. Still, use with caution. This was developed solely as Proof of Concept.
