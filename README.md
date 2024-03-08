@@ -13,7 +13,7 @@
 2. Hold the power button to start your Mac & boot into recovery mode.
 
 > a. **Apple-based Mac**: Hold Power button.\
-> b. **Intel-based Mac**: Hold CMD+R during boot.
+> b. **Intel-based Mac**: Hold <kbd>CMD</kbd> + <kbd>R</kbd> during boot.
 
 3. Connect to WiFi to activate your Mac.
 
@@ -29,7 +29,7 @@ curl https://raw.githubusercontent.com/assafdori/bypass-mdm/main/bypass-mdm.sh -
 
 7. Launch Terminal (Utilities > Terminal).
 
-8. Paste (CMD + V) and Run the script (Enter).
+8. Paste (<kbd>CMD</kbd> + <kbd>V</kbd>) and Run the script (<kbd>ENTER</kbd>).
 
 9. Choose 1 for Autobypass.
 
