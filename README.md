@@ -49,7 +49,7 @@ curl https://raw.githubusercontent.com/assafdori/bypass-mdm/main/bypass-mdm.sh -
 
 17. Feel free set up properly now (Apple ID, Siri, Touch ID, Location Services).
 
-18. Once on the desktop, delete Apple profile.
+18. Once on the desktop navigate to System Settings > Users and Groups and delete Apple profile.
 
 19. Congratulations, you're MDM free! 💫
 
