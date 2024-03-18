@@ -31,7 +31,7 @@ curl https://raw.githubusercontent.com/assafdori/bypass-mdm/main/bypass-mdm.sh -
 
 8. Paste (<kbd>CMD</kbd> + <kbd>V</kbd>) and Run the script (<kbd>ENTER</kbd>).
 
-9. Choose 1 for Autobypass.
+9. Input 1 for Autobypass.
 
 10. Press Enter to leave the default username 'Apple'.
 
