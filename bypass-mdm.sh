@@ -15,7 +15,7 @@ echo ""
 
 # Prompt user for choice
 PS3='Please enter your choice: '
-options=("Bypass MDM from Recovery" "Exit")
+options=("Bypass MDM from Recovery" "Reboot & Exit")
 select opt in "${options[@]}"; do
     case $opt in
         "Bypass MDM from Recovery")
