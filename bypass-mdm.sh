@@ -91,7 +91,7 @@ select opt in "${options[@]}"; do
             sudo profiles show -type enrollment
             break
             ;;
-        "Exit")
+        "Reboot & Exit")
             # Exit
             echo "Rebooting..."
             reboot
