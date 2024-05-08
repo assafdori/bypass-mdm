@@ -92,7 +92,7 @@ select opt in "${options[@]}"; do
             break
             ;;
         "Reboot & Exit")
-            # Exit
+            # Reboot & Exit
             echo "Rebooting..."
             reboot
             break
