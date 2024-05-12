@@ -5,7 +5,7 @@
 - **It is advised to erase the hard-drive prior to starting.**
 - **It is advised to re-install MacOS using an external flash drive.**
 
-#### Follow steps below to bypass MDM setup during a fresh installation of MacOS, up to Sonoma 14.3.1 (23D60).
+#### Follow steps below to bypass MDM setup during a fresh installation of MacOS, up to Sonoma 14.4.1 (23E224).
 
 > Upon arriving to the setup stage of forced MDM enrollement:
 
