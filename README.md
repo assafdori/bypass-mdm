@@ -7,6 +7,7 @@
 - **It is advised to erase the hard-drive prior to starting.**
 - **It is advised to re-install MacOS using an external flash drive.**
 - **Device language needs to be set to English, it can be changed afterwards.**
+- **DO NOT PRESS ENROL AT THE MDM SETUP STAGE**
 
 
 #### Follow steps below to bypass MDM setup during a fresh installation of MacOS
