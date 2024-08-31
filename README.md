@@ -36,26 +36,28 @@ curl https://raw.githubusercontent.com/assafdori/bypass-mdm/main/bypass-mdm.sh -
 
 8. Paste (<kbd>CMD</kbd> + <kbd>V</kbd>) and Run the script (<kbd>ENTER</kbd>).
 
-9. Input 1 for Autobypass.
+9. If on Sonoma you have read-only error, run `mount -uw /`, it will show "Low Disk Space" error but close and ignore it, then run script again (in this case you can do it once, or curl will show `-32730` error and you will must reboot to internet recovery and do all from scratch)
 
-10. Press Enter to leave the default username 'Apple'.
+10. Input 1 for Autobypass.
 
-11. Press Enter to leave the default  password '1234'.
+11. Press Enter to leave the default username 'Apple'.
 
-12. Wait for the script to finish & Reboot your Mac.
+12. Press Enter to leave the default  password '1234'.
 
-13. Sign in with user (Apple) & password (1234)
+13. Wait for the script to finish & Reboot your Mac.
 
-14. Skip all setup (Apple ID, Siri, Touch ID, Location Services)
+14. Sign in with user (Apple) & password (1234)
 
-15. Once on the desktop navigate to System Settings > Users and Groups, and create your real Admin account.
+15. Skip all setup (Apple ID, Siri, Touch ID, Location Services)
 
-16. Log out of the Apple profile, and sign in into your real profile.
+16. Once on the desktop navigate to System Settings > Users and Groups, and create your real Admin account.
 
-17. Feel free set up properly now (Apple ID, Siri, Touch ID, Location Services).
+17. Log out of the Apple profile, and sign in into your real profile.
 
-18. Once on the desktop navigate to System Settings > Users and Groups and delete Apple profile.
+18. Feel free set up properly now (Apple ID, Siri, Touch ID, Location Services).
 
-19. Congratulations, you're MDM free! 💫
+19. Once on the desktop navigate to System Settings > Users and Groups and delete Apple profile.
+
+20. Congratulations, you're MDM free! 💫
 
 ###### Although it's virtually impossible to catch that you've removed the MDM (because it wasn't even configured), be aware that the serial number of the laptop will still be shown in the inventory system of your company. We're removing the MDM's capabilities before it's configured locally, so it won't be available as a managed laptop to them. Use with caution. Probably a good idea to have a valid excuse as well.
