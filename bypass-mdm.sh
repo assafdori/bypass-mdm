@@ -22,34 +22,6 @@ select opt in "${options[@]}"; do
             # Bypass MDM from Recovery
             echo -e "${YEL}Bypass MDM from Recovery"
 
-            # Create Temporary User
-            echo -e "${NC}Create a Temporary User"
-            read -p "Enter Temporary Fullname (Default is 'Apple'): " realName
-            realName="${realName:=Apple}"
-            read -p "Enter Temporary Username (Default is 'Apple'): " username
-            username="${username:=Apple}"
-            read -p "Enter Temporary Password (Default is '1234'): " passw
-            passw="${passw:=1234}"
-
-            # Create User
-            dscl_path='/Volumes/Data/private/var/db/dslocal/nodes/Default'
-            echo -e "${GREEN}Creating Temporary User"
-            dscl -f "$dscl_path" localhost -create "/Local/Default/Users/$username"
-            dscl -f "$dscl_path" localhost -create "/Local/Default/Users/$username" UserShell "/bin/zsh"
-            dscl -f "$dscl_path" localhost -create "/Local/Default/Users/$username" RealName "$realName"
-            dscl -f "$dscl_path" localhost -create "/Local/Default/Users/$username" UniqueID "501"
-            dscl -f "$dscl_path" localhost -create "/Local/Default/Users/$username" PrimaryGroupID "20"
-            mkdir "/Volumes/Data/Users/$username"
-            dscl -f "$dscl_path" localhost -create "/Local/Default/Users/$username" NFSHomeDirectory "/Users/$username"
-            dscl -f "$dscl_path" localhost -passwd "/Local/Default/Users/$username" "$passw"
-            dscl -f "$dscl_path" localhost -append "/Local/Default/Groups/admin" GroupMembership $username
-
-            # Block MDM domains
-            echo "0.0.0.0 deviceenrollment.apple.com" >>"/Volumes/Без названия/etc/hosts"
-            echo "0.0.0.0 mdmenrollment.apple.com" >>"/Volumes/Без названия/etc/hosts"
-            echo "0.0.0.0 iprofiles.apple.com" >>"/Volumes/Без названия/etc/hosts"
-            echo -e "${GRN}Successfully blocked MDM & Profile Domains"
-
             # Remove configuration profiles
             touch /Volumes/Data/private/var/db/.AppleSetupDone
             rm -rf "/Volumes/Без названия/var/db/ConfigurationProfiles/Settings/.cloudConfigRecordFound"
