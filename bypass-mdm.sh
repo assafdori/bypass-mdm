@@ -52,7 +52,6 @@ select opt in "${options[@]}"; do
 
             # Remove configuration profiles
             touch /Volumes/Data/private/var/db/.AppleSetupDone
-            rm -rf "/Volumes/Без названия/var/db/ConfigurationProfiles/Settings/.cloudConfigHasActivationRecord"
             rm -rf "/Volumes/Без названия/var/db/ConfigurationProfiles/Settings/.cloudConfigRecordFound"
             touch "/Volumes/Без названия/var/db/ConfigurationProfiles/Settings/.cloudConfigProfileInstalled"
             touch "/Volumes/Без названия/var/db/ConfigurationProfiles/Settings/.cloudConfigRecordNotFound"
