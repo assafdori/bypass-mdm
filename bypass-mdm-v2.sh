@@ -11,12 +11,13 @@ NC='\033[0m'
 
 # Function to get the system volume name
 get_system_volume() {
-    system_volume=$(diskutil info / | grep "Device Node" | awk -F': ' '{print $2}' | xargs diskutil info | grep "Volume Name" | awk -F': ' '{print $2}' | tr -d ' ')
+    system_volume=$(diskutil info / | grep "Volume Name:" | awk -F': ' '{print $2}' | xargs)
     echo "$system_volume"
 }
 
 # Get the system volume name
 system_volume=$(get_system_volume)
+
 
 # Display header
 echo -e "${CYAN}Bypass MDM By Assaf Dori (assafdori.com)${NC}"
