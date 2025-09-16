@@ -1,4 +1,4 @@
-# Bypass-MDM for MacOS 💻
+# Bypass-MDM for MacOS 26 Tahoe💻
 
 ![mdm-screen](https://raw.githubusercontent.com/assafdori/bypass-mdm/main/mdm-screen.png)
 
