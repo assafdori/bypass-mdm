@@ -18,24 +18,6 @@ A script to bypass Mobile Device Management (MDM) enrollment during macOS setup.
 
 The instructions below use **v2 by default** (recommended). If you experience issues, you can still use the original version by replacing `bypass-mdm-v2.sh` with `bypass-mdm.sh` in the commands.
 
-### ❤️ Optional Contributions
-
-Many people have reached out asking how to say thank you for saving their Mac. **This is completely optional and not expected!** If you'd like to contribute, crypto donations are appreciated.
-
-People have forked this repository and put the script behind a pay-wall. I do not care at all. Once again, crypto contributions are not expected, but feel free if you want to.
-
-**Bitcoin (BTC):**
-
-```
-bc1qzguh4908r7wguz20ylzeggya9d38t6hega5ppf
-```
-
-**Monero (XMR):**
-
-```
-45RnFseY4gNZv58DvShz2KJEbx1EyaTtaMCDnU5th21KbRThWurjjK6iugEdq9wfc4Kbw3a7AAyqo6WnEmL1StAMJur8QJp
-```
-
 ---
 
 ## ✨ Features
@@ -193,6 +175,24 @@ chmod +x bypass-mdm.sh
 | ------------------ | ------------------------------------------------- | ------------------ |
 | `bypass-mdm-v2.sh` | Enhanced version with auto-detection & validation | ✅ **Recommended** |
 | `bypass-mdm.sh`    | Original version with hardcoded volume names      | ⚠️ Legacy          |
+
+### ❤️ Optional Contributions
+
+Many people have reached out asking how to say thank you for saving their Mac. **This is completely optional and not expected!** If you'd like to contribute, crypto donations are appreciated.
+
+People have forked this repository and put the script behind a pay-wall. I do not care at all. Once again, crypto contributions are not expected, but feel free if you want to.
+
+**Bitcoin (BTC):**
+
+```
+bc1qzguh4908r7wguz20ylzeggya9d38t6hega5ppf
+```
+
+**Monero (XMR):**
+
+```
+45RnFseY4gNZv58DvShz2KJEbx1EyaTtaMCDnU5th21KbRThWurjjK6iugEdq9wfc4Kbw3a7AAyqo6WnEmL1StAMJur8QJp
+```
 
 ## ⚖️ Legal Disclaimer
 
