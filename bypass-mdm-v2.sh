@@ -30,86 +30,6 @@ info() {
 	echo -e "${BLU}ℹ $1${NC}"
 }
 
-# Validation function for username
-validate_username() {
-	local username="$1"
-
-	# Check if username is empty
-	if [ -z "$username" ]; then
-		echo "Username cannot be empty"
-		return 1
-	fi
-
-	# Check length (1-31 characters for macOS)
-	if [ ${#username} -gt 31 ]; then
-		echo "Username too long (max 31 characters)"
-		return 1
-	fi
-
-	# Check for valid characters (alphanumeric, underscore, hyphen)
-	if ! [[ "$username" =~ ^[a-zA-Z0-9_-]+$ ]]; then
-		echo "Username can only contain letters, numbers, underscore, and hyphen"
-		return 1
-	fi
-
-	# Check if starts with letter or underscore
-	if ! [[ "$username" =~ ^[a-zA-Z_] ]]; then
-		echo "Username must start with a letter or underscore"
-		return 1
-	fi
-
-	return 0
-}
-
-# Validation function for password
-validate_password() {
-	local password="$1"
-
-	# Check if password is empty
-	if [ -z "$password" ]; then
-		echo "Password cannot be empty"
-		return 1
-	fi
-
-	# Check minimum length (macOS allows any length, but recommend 4+)
-	if [ ${#password} -lt 4 ]; then
-		echo "Password too short (minimum 4 characters recommended)"
-		return 1
-	fi
-
-	return 0
-}
-
-# Check if user already exists
-check_user_exists() {
-	local dscl_path="$1"
-	local username="$2"
-
-	if dscl -f "$dscl_path" localhost -read "/Local/Default/Users/$username" 2>/dev/null; then
-		return 0 # User exists
-	else
-		return 1 # User doesn't exist
-	fi
-}
-
-# Find available UID
-find_available_uid() {
-	local dscl_path="$1"
-	local uid=501
-
-	# Check UIDs from 501-599
-	while [ $uid -lt 600 ]; do
-		if ! dscl -f "$dscl_path" localhost -search /Local/Default/Users UniqueID $uid 2>/dev/null | grep -q "UniqueID"; then
-			echo $uid
-			return 0
-		fi
-		uid=$((uid + 1))
-	done
-
-	echo "501" # Default fallback
-	return 1
-}
-
 # Function to detect system volumes with multiple fallback strategies
 detect_volumes() {
 	local system_vol=""
@@ -225,121 +145,7 @@ select opt in "${options[@]}"; do
 			error_exit "Data volume path does not exist: $data_path"
 		fi
 
-		dscl_path="$data_path/private/var/db/dslocal/nodes/Default"
-		if [ ! -d "$dscl_path" ]; then
-			error_exit "Directory Services path does not exist: $dscl_path"
-		fi
-
 		success "All system paths validated"
-		echo ""
-
-		# Create Temporary User
-		echo -e "${CYAN}Creating Temporary Admin User${NC}"
-		echo -e "${NC}Press Enter to use defaults (recommended)${NC}"
-
-		# Get and validate real name
-		read -p "Enter Temporary Fullname (Default is 'Apple'): " realName
-		realName="${realName:=Apple}"
-
-		# Get and validate username
-		while true; do
-			read -p "Enter Temporary Username (Default is 'Apple'): " username
-			username="${username:=Apple}"
-
-			if validation_msg=$(validate_username "$username"); then
-				break
-			else
-				warn "$validation_msg"
-				echo -e "${YEL}Please try again or press Ctrl+C to exit${NC}"
-			fi
-		done
-
-		# Check if user already exists
-		if check_user_exists "$dscl_path" "$username"; then
-			warn "User '$username' already exists in the system"
-			read -p "Do you want to use a different username? (y/n): " response
-			if [[ "$response" =~ ^[Yy]$ ]]; then
-				while true; do
-					read -p "Enter a different username: " username
-					if [ -z "$username" ]; then
-						warn "Username cannot be empty"
-						continue
-					fi
-					if validation_msg=$(validate_username "$username"); then
-						if ! check_user_exists "$dscl_path" "$username"; then
-							break
-						else
-							warn "User '$username' also exists. Try another name."
-						fi
-					else
-						warn "$validation_msg"
-					fi
-				done
-			else
-				warn "Continuing with existing user '$username' (may cause conflicts)"
-			fi
-		fi
-
-		# Get and validate password
-		while true; do
-			read -p "Enter Temporary Password (Default is '1234'): " passw
-			passw="${passw:=1234}"
-
-			if validation_msg=$(validate_password "$passw"); then
-				break
-			else
-				warn "$validation_msg"
-				echo -e "${YEL}Please try again or press Ctrl+C to exit${NC}"
-			fi
-		done
-
-		echo ""
-
-		# Find available UID
-		info "Checking for available UID..."
-		available_uid=$(find_available_uid "$dscl_path")
-		if [ $? -eq 0 ] && [ "$available_uid" != "501" ]; then
-			info "UID 501 is in use, using UID $available_uid instead"
-		else
-			available_uid="501"
-		fi
-		success "Using UID: $available_uid"
-		echo ""
-
-		# Create User with error handling
-		info "Creating user account: $username"
-
-		if ! dscl -f "$dscl_path" localhost -create "/Local/Default/Users/$username" 2>/dev/null; then
-			error_exit "Failed to create user account"
-		fi
-
-		dscl -f "$dscl_path" localhost -create "/Local/Default/Users/$username" UserShell "/bin/zsh" || warn "Failed to set user shell"
-		dscl -f "$dscl_path" localhost -create "/Local/Default/Users/$username" RealName "$realName" || warn "Failed to set real name"
-		dscl -f "$dscl_path" localhost -create "/Local/Default/Users/$username" UniqueID "$available_uid" || warn "Failed to set UID"
-		dscl -f "$dscl_path" localhost -create "/Local/Default/Users/$username" PrimaryGroupID "20" || warn "Failed to set GID"
-
-		user_home="$data_path/Users/$username"
-		if [ ! -d "$user_home" ]; then
-			if mkdir -p "$user_home" 2>/dev/null; then
-				success "Created user home directory"
-			else
-				error_exit "Failed to create user home directory: $user_home"
-			fi
-		else
-			warn "User home directory already exists: $user_home"
-		fi
-
-		dscl -f "$dscl_path" localhost -create "/Local/Default/Users/$username" NFSHomeDirectory "/Users/$username" || warn "Failed to set home directory"
-
-		if ! dscl -f "$dscl_path" localhost -passwd "/Local/Default/Users/$username" "$passw" 2>/dev/null; then
-			error_exit "Failed to set user password"
-		fi
-
-		if ! dscl -f "$dscl_path" localhost -append "/Local/Default/Groups/admin" GroupMembership "$username" 2>/dev/null; then
-			error_exit "Failed to add user to admin group"
-		fi
-
-		success "User account created successfully"
 		echo ""
 
 		# Block MDM domains
@@ -373,9 +179,6 @@ select opt in "${options[@]}"; do
 			fi
 		fi
 
-		# Mark setup as done
-		touch "$data_path/private/var/db/.AppleSetupDone" 2>/dev/null && success "Marked setup as complete" || warn "Could not mark setup as complete"
-
 		# Remove activation records
 		rm -rf "$config_path/.cloudConfigHasActivationRecord" 2>/dev/null && success "Removed activation record" || info "No activation record to remove"
 		rm -rf "$config_path/.cloudConfigRecordFound" 2>/dev/null && success "Removed cloud config record" || info "No cloud config record to remove"
@@ -392,7 +195,7 @@ select opt in "${options[@]}"; do
 		echo -e "${CYAN}Next steps:${NC}"
 		echo -e "  1. Close this terminal window"
 		echo -e "  2. Reboot your Mac"
-		echo -e "  3. Login with username: ${YEL}$username${NC} and password: ${YEL}$passw${NC}"
+		echo -e "  3. Complete the standard macOS Setup Assistant"
 		echo ""
 		break
 		;;
