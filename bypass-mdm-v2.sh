@@ -1,5 +1,12 @@
 #!/bin/bash
 
+# bypass-mdm-v2-FIXED.sh
+# Version: 3.5 - 2024-03-23
+# Fixed version that mounts the Data volume in Recovery Mode
+# Handles FileVault encrypted volumes
+
+VERSION="3.5"
+
 # Define color codes
 RED='\033[1;31m'
 GRN='\033[1;32m'
@@ -17,116 +24,266 @@ error_exit() {
 
 # Warning function
 warn() {
-	echo -e "${YEL}WARNING: $1${NC}"
+	echo -e "${YEL}WARNING: $1${NC}" >&2
 }
 
 # Success function
 success() {
-	echo -e "${GRN}✓ $1${NC}"
+	echo -e "${GRN}✓ $1${NC}" >&2
 }
 
 # Info function
 info() {
-	echo -e "${BLU}ℹ $1${NC}"
+	echo -e "${BLU}ℹ $1${NC}" >&2
 }
 
-# Validation function for username
-validate_username() {
-	local username="$1"
-
-	# Check if username is empty
-	if [ -z "$username" ]; then
-		echo "Username cannot be empty"
-		return 1
-	fi
-
-	# Check length (1-31 characters for macOS)
-	if [ ${#username} -gt 31 ]; then
-		echo "Username too long (max 31 characters)"
-		return 1
-	fi
-
-	# Check for valid characters (alphanumeric, underscore, hyphen)
-	if ! [[ "$username" =~ ^[a-zA-Z0-9_-]+$ ]]; then
-		echo "Username can only contain letters, numbers, underscore, and hyphen"
-		return 1
-	fi
-
-	# Check if starts with letter or underscore
-	if ! [[ "$username" =~ ^[a-zA-Z_] ]]; then
-		echo "Username must start with a letter or underscore"
-		return 1
-	fi
-
-	return 0
+# Debug function
+debug() {
+	echo -e "${PUR}[DEBUG] $1${NC}" >&2
 }
 
-# Validation function for password
-validate_password() {
-	local password="$1"
-
-	# Check if password is empty
-	if [ -z "$password" ]; then
-		echo "Password cannot be empty"
-		return 1
-	fi
-
-	# Check minimum length (macOS allows any length, but recommend 4+)
-	if [ ${#password} -lt 4 ]; then
-		echo "Password too short (minimum 4 characters recommended)"
-		return 1
-	fi
-
-	return 0
-}
-
-# Check if user already exists
-check_user_exists() {
-	local dscl_path="$1"
-	local username="$2"
-
-	if dscl -f "$dscl_path" localhost -read "/Local/Default/Users/$username" 2>/dev/null; then
-		return 0 # User exists
-	else
-		return 1 # User doesn't exist
-	fi
-}
-
-# Find available UID
-find_available_uid() {
-	local dscl_path="$1"
-	local uid=501
-
-	# Check UIDs from 501-599
-	while [ $uid -lt 600 ]; do
-		if ! dscl -f "$dscl_path" localhost -search /Local/Default/Users UniqueID $uid 2>/dev/null | grep -q "UniqueID"; then
-			echo $uid
-			return 0
-		fi
-		uid=$((uid + 1))
+# Show current system state
+show_system_state() {
+	echo ""
+	echo -e "${CYAN}╔═══════════════════════════════════════════════╗${NC}"
+	echo -e "${CYAN}║  Debug Info - Version ${VERSION}                     ║${NC}"
+	echo -e "${CYAN}╚═══════════════════════════════════════════════╝${NC}"
+	echo ""
+	
+	info "Current mounted volumes:"
+	ls -la /Volumes/ 2>&1 | while read line; do
+		echo "    $line"
 	done
+	
+	echo ""
+	info "APFS Volumes from diskutil:"
+	diskutil list | grep "APFS Volume" | while read line; do
+		echo "    $line"
+	done
+	
+	echo ""
+	info "Checking for Data volume in diskutil:"
+	diskutil list | grep "APFS Volume" | grep "Data"
+	if [ $? -ne 0 ]; then
+		echo "    (No Data volume found in diskutil list)"
+	fi
+	
+	echo ""
+}
 
-	echo "501" # Default fallback
-	return 1
+# Function to unlock and mount data volume
+# Returns the mounted volume name via echo for capture
+mount_data_volume() {
+    info "=== MOUNT DATA VOLUME STEP ==="
+    
+    # Check if Data volume is already mounted
+    if [ -d "/Volumes/Data" ]; then
+        info "Data volume already mounted at /Volumes/Data" >&2
+        echo "Data"
+        return 0
+    fi
+    
+    debug "Data volume not found at /Volumes/Data, need to mount it" >&2
+    
+    # Find the data volume identifier from diskutil
+    local data_volume_id=""
+    
+    info "Searching for 'Data' volume in diskutil..." >&2
+    
+    # Strategy 1: Look for "Data" APFS volume on disk3
+    data_volume_id=$(diskutil list | grep "APFS Volume" | grep "Data" | grep "disk3" | awk '{print $NF}' | head -1)
+    debug "After searching on disk3: data_volume_id='$data_volume_id'" >&2
+    
+    # Strategy 2: If not found, look for volume with Data in name (any disk)
+    if [ -z "$data_volume_id" ]; then
+        debug "Not found on disk3, searching all disks..." >&2
+        data_volume_id=$(diskutil list | grep "APFS Volume" | grep "Data" | awk '{print $NF}' | head -1)
+        debug "After searching all disks: data_volume_id='$data_volume_id'" >&2
+    fi
+    
+    if [ -z "$data_volume_id" ]; then
+        error_exit "Could not find 'Data' volume identifier in diskutil output"
+    fi
+    
+    info "Found data volume identifier: $data_volume_id" >&2
+    
+    # Check if volume is encrypted/locked
+    info "Checking if volume is encrypted..." >&2
+    local disk_info
+    disk_info=$(diskutil apfs list 2>&1 | grep -A 5 "$data_volume_id")
+    debug "Volume info:\n$disk_info" >&2
+    
+    # Check if locked (look for FileVault: Yes or Locked: Yes)
+    local volume_status
+    volume_status=$(diskutil apfs list 2>&1 | grep -A 15 "Volume $data_volume_id" | head -20)
+    debug "Full volume status:\n$volume_status" >&2
+    
+    if echo "$volume_status" | grep -E "(FileVault.*Yes|Locked.*Yes)" > /dev/null; then
+        warn "╔════════════════════════════════════════════════════════╗" >&2
+        warn "║  FILEVAULT ENCRYPTED VOLUME DETECTED                   ║" >&2  
+        warn "║  The Data volume is encrypted and needs to be unlocked ║" >&2
+        warn "║  before we can create a user account.                  ║" >&2
+        warn "╚════════════════════════════════════════════════════════╝" >&2
+        
+        # Try to unlock with user password
+        local unlock_success=0
+        local unlock_attempts=0
+        
+        while [ $unlock_success -eq 0 ] && [ $unlock_attempts -lt 3 ]; do
+            unlock_attempts=$((unlock_attempts + 1))
+            
+            echo ""
+            echo -e "${CYAN}────────────────────────────────────────────────${NC}" >&2
+            if [ $unlock_attempts -eq 1 ]; then
+                echo -e "${YEL}Please enter your FileVault password${NC}" >&2
+                echo -e "${YEL}(This is the password you use to unlock your Mac at startup)${NC}" >&2
+                echo ""
+                read -s -p "Password: " filevault_pass
+            else
+                echo -e "${RED}Password incorrect. Attempt $unlock_attempts of 3${NC}" >&2
+                echo ""
+                read -s -p "Try again: " filevault_pass
+            fi
+            echo ""
+            echo -e "${CYAN}────────────────────────────────────────────────${NC}" >&2
+            echo ""
+            
+            info "Attempting to unlock volume..." >&2
+            local unlock_output
+            unlock_output=$(diskutil apfs unlockVolume "$data_volume_id" -passphrase "$filevault_pass" 2>&1)
+            local unlock_exit=$?
+            
+            debug "Unlock output: $unlock_output" >&2
+            
+            if [ $unlock_exit -eq 0 ]; then
+                success "Volume unlocked successfully" >&2
+                unlock_success=1
+            else
+                warn "Unlock failed: $unlock_output" >&2
+            fi
+        done
+        
+        if [ $unlock_success -eq 0 ]; then
+            error_exit "Failed to unlock volume after $unlock_attempts attempts. Cannot proceed."
+        fi
+    fi
+    
+    # Now try to mount the volume
+    info "Attempting to mount data volume..." >&2
+    
+    # Try method 1: standard mount
+    debug "Method 1: diskutil mount $data_volume_id" >&2
+    local mount_output
+    mount_output=$(diskutil mount "$data_volume_id" 2>&1)
+    debug "Mount output: $mount_output" >&2
+    
+    if echo "$mount_output" | grep -q "mounted"; then
+        success "Data volume mounted successfully (method 1)" >&2
+        sleep 1
+        
+        # Verify it actually mounted
+        if [ -d "/Volumes/Data" ]; then
+            success "Verified: /Volumes/Data exists" >&2
+            echo "Data"
+            return 0
+        else
+            warn "Mount reported success but /Volumes/Data does not exist" >&2
+        fi
+    else
+        warn "Method 1 failed: $mount_output" >&2
+    fi
+    
+    # Try method 2: mountDisk
+    debug "Method 2: diskutil mountDisk $data_volume_id" >&2
+    mount_output=$(diskutil mountDisk "$data_volume_id" 2>&1)
+    debug "MountDisk output: $mount_output" >&2
+    
+    if echo "$mount_output" | grep -q "mounted"; then
+        success "Data volume mounted with mountDisk (method 2)" >&2
+        sleep 1
+        
+        if [ -d "/Volumes/Data" ]; then
+            success "Verified: /Volumes/Data exists" >&2
+            echo "Data"
+            return 0
+        fi
+    else
+        warn "Method 2 failed: $mount_output" >&2
+    fi
+    
+    # Try method 3: force mount with explicit mount point
+    debug "Method 3: Force mount to /Volumes/Data" >&2
+    mkdir -p /Volumes/Data 2>/dev/null
+    mount_output=$(diskutil mount -mountPoint /Volumes/Data "$data_volume_id" 2>&1)
+    debug "Force mount output: $mount_output" >&2
+    
+    if echo "$mount_output" | grep -q "mounted"; then
+        success "Data volume force mounted (method 3)" >&2
+        sleep 1
+        
+        if [ -d "/Volumes/Data" ]; then
+            success "Verified: /Volumes/Data exists" >&2
+            echo "Data"
+            return 0
+        fi
+    else
+        warn "Method 3 failed: $mount_output" >&2
+    fi
+    
+    # Method 4: Try using mount command directly
+    debug "Method 4: Direct mount command" >&2
+    local device_path="/dev/$data_volume_id"
+    if [ -e "$device_path" ]; then
+        debug "Device exists: $device_path" >&2
+        mount_output=$(mount -t apfs "$device_path" /Volumes/Data 2>&1)
+        if [ $? -eq 0 ]; then
+            success "Data volume mounted with direct mount (method 4)" >&2
+            echo "Data"
+            return 0
+        else
+            warn "Method 4 failed: $mount_output" >&2
+        fi
+    else
+        debug "Device does not exist: $device_path" >&2
+    fi
+    
+    error_exit "All mount methods failed. Could not mount data volume."
 }
 
 # Function to detect system volumes with multiple fallback strategies
+# Optional argument: $1 = pre-mounted data volume name
 detect_volumes() {
 	local system_vol=""
-	local data_vol=""
+	local data_vol="${1:-}"
 
-	info "Detecting system volumes..." >&2
-
+	info "=== DETECT VOLUMES STEP ==="
+	
+	# Debug: Show what was passed in
+	debug "Passed data_vol argument: '$data_vol'" >&2
+	
+	# Strategy 0: If data volume was already mounted and passed in, verify it
+	if [ -n "$data_vol" ]; then
+		info "Checking if passed data volume '$data_vol' is valid..." >&2
+		if [ -d "/Volumes/$data_vol/private/var/db/dslocal" ]; then
+			success "Passed data volume '$data_vol' is valid (has dslocal)" >&2
+			# Still need to find system volume
+		else
+			warn "Passed data volume '$data_vol' does not have dslocal directory" >&2
+			data_vol=""
+		fi
+	fi
+	
 	# Strategy 1: Look for common macOS APFS volume patterns
-	# List all volumes and look for system volume (ends with or contains common names)
+	info "Strategy 1: Looking for system volume..." >&2
 	for vol in /Volumes/*; do
 		if [ -d "$vol" ]; then
 			vol_name=$(basename "$vol")
+			debug "Checking volume: $vol_name" >&2
 
 			# Check if this looks like a system volume (not Data, not recovery)
 			if [[ ! "$vol_name" =~ "Data"$ ]] && [[ ! "$vol_name" =~ "Recovery" ]] && [ -d "$vol/System" ]; then
 				system_vol="$vol_name"
-				info "Found system volume: $system_vol" >&2
+				success "Found system volume: $system_vol" >&2
 				break
 			fi
 		fi
@@ -134,6 +291,7 @@ detect_volumes() {
 
 	# Strategy 2: If no system volume found, try looking for any volume with /System directory
 	if [ -z "$system_vol" ]; then
+		info "Strategy 2: Looking for any volume with /System directory..." >&2
 		for vol in /Volumes/*; do
 			if [ -d "$vol/System" ]; then
 				system_vol=$(basename "$vol")
@@ -144,24 +302,56 @@ detect_volumes() {
 	fi
 
 	# Strategy 3: Check for Data volume
-	if [ -d "/Volumes/Data" ]; then
-		data_vol="Data"
-		info "Found data volume: $data_vol" >&2
-	elif [ -n "$system_vol" ] && [ -d "/Volumes/$system_vol - Data" ]; then
-		data_vol="$system_vol - Data"
-		info "Found data volume: $data_vol" >&2
-	else
-		# Look for any volume ending with "Data"
-		for vol in /Volumes/*Data; do
+	if [ -z "$data_vol" ]; then
+		info "Strategy 3: Checking for Data volume..." >&2
+		if [ -d "/Volumes/Data" ]; then
+			data_vol="Data"
+			success "Found data volume: $data_vol" >&2
+		elif [ -n "$system_vol" ] && [ -d "/Volumes/$system_vol - Data" ]; then
+			data_vol="$system_vol - Data"
+			success "Found data volume: $data_vol" >&2
+		else
+			# Look for any volume ending with "Data"
+			for vol in /Volumes/*Data; do
+				if [ -d "$vol" ]; then
+					data_vol=$(basename "$vol")
+					warn "Found data volume: $data_vol" >&2
+					break
+				fi
+			done
+		fi
+	fi
+	
+	# Strategy 4: Look for any volume with dslocal directory (indicates data volume)
+	if [ -z "$data_vol" ]; then
+		info "Strategy 4: Looking for volume with dslocal directory..." >&2
+		for vol in /Volumes/*; do
 			if [ -d "$vol" ]; then
-				data_vol=$(basename "$vol")
-				warn "Found data volume: $data_vol" >&2
-				break
+				vol_name=$(basename "$vol")
+				debug "Checking volume '$vol_name' for dslocal..." >&2
+				
+				# Skip system volume, recovery volumes, and macOS Base System
+				if [ "$vol_name" != "$system_vol" ] && [[ ! "$vol_name" =~ "Recovery" ]] && [[ ! "$vol_name" =~ "Preboot" ]] && [[ ! "$vol_name" =~ "VM" ]] && [[ ! "$vol_name" =~ "Base System" ]]; then
+					# Check if this volume has the dslocal directory
+					if [ -d "$vol/private/var/db/dslocal" ]; then
+						data_vol="$vol_name"
+						success "Found data volume by dslocal presence: $data_vol" >&2
+						break
+					else
+						debug "Volume '$vol_name' does not have /private/var/db/dslocal" >&2
+					fi
+				else
+					debug "Skipping volume '$vol_name' (filtered out)" >&2
+				fi
 			fi
 		done
 	fi
 
 	# Validate findings
+	info "=== DETECTION RESULTS ==="
+	debug "system_vol='$system_vol'" >&2
+	debug "data_vol='$data_vol'" >&2
+	
 	if [ -z "$system_vol" ]; then
 		error_exit "Could not detect system volume. Please ensure you're running this in Recovery mode with a macOS installation present."
 	fi
@@ -173,8 +363,33 @@ detect_volumes() {
 	echo "$system_vol|$data_vol"
 }
 
-# Detect volumes at startup
-volume_info=$(detect_volumes)
+# Show initial debug info
+show_system_state
+
+# Mount data volume first
+info "=== STARTING MOUNT PROCESS ==="
+mount_data_volume
+mount_exit_code=$?
+
+if [ $mount_exit_code -ne 0 ]; then
+	error_exit "Mount process failed with exit code $mount_exit_code"
+fi
+
+# Check if Data volume was mounted
+if [ ! -d "/Volumes/Data" ]; then
+	error_exit "Mount reported success but /Volumes/Data does not exist"
+fi
+
+mounted_data_vol="Data"
+success "Mount process completed successfully"
+
+# Detect volumes at startup, passing the mounted volume if found
+info "=== STARTING DETECTION PROCESS ==="
+volume_info=$(detect_volumes "$mounted_data_vol")
+if [ $? -ne 0 ]; then
+	exit 1
+fi
+
 system_volume=$(echo "$volume_info" | cut -d'|' -f1)
 data_volume=$(echo "$volume_info" | cut -d'|' -f2)
 
@@ -182,6 +397,7 @@ data_volume=$(echo "$volume_info" | cut -d'|' -f2)
 echo ""
 echo -e "${CYAN}╔═══════════════════════════════════════════════╗${NC}"
 echo -e "${CYAN}║  Bypass MDM By Assaf Dori (assafdori.com)   ║${NC}"
+echo -e "${CYAN}║  Version: ${VERSION}                                ║${NC}"
 echo -e "${CYAN}╚═══════════════════════════════════════════════╝${NC}"
 echo ""
 success "System Volume: $system_volume"
@@ -203,7 +419,7 @@ select opt in "${options[@]}"; do
 		# Normalize data volume name if needed
 		if [ "$data_volume" != "Data" ]; then
 			info "Renaming data volume to 'Data' for consistency..."
-			if diskutil rename "$data_volume" "Data" 2>/dev/null; then
+			if diskutil rename "$data_volume" "Data" >/dev/null 2>&1; then
 				success "Data volume renamed successfully"
 				data_volume="Data"
 			else
@@ -245,63 +461,43 @@ select opt in "${options[@]}"; do
 		while true; do
 			read -p "Enter Temporary Username (Default is 'Apple'): " username
 			username="${username:=Apple}"
-
-			if validation_msg=$(validate_username "$username"); then
-				break
-			else
-				warn "$validation_msg"
-				echo -e "${YEL}Please try again or press Ctrl+C to exit${NC}"
+			
+			# Check if username is empty
+			if [ -z "$username" ]; then
+				warn "Username cannot be empty"
+				continue
 			fi
+			
+			# Check length (1-31 characters for macOS)
+			if [ ${#username} -gt 31 ]; then
+				warn "Username too long (max 31 characters)"
+				continue
+			fi
+			
+			break
 		done
-
-		# Check if user already exists
-		if check_user_exists "$dscl_path" "$username"; then
-			warn "User '$username' already exists in the system"
-			read -p "Do you want to use a different username? (y/n): " response
-			if [[ "$response" =~ ^[Yy]$ ]]; then
-				while true; do
-					read -p "Enter a different username: " username
-					if [ -z "$username" ]; then
-						warn "Username cannot be empty"
-						continue
-					fi
-					if validation_msg=$(validate_username "$username"); then
-						if ! check_user_exists "$dscl_path" "$username"; then
-							break
-						else
-							warn "User '$username' also exists. Try another name."
-						fi
-					else
-						warn "$validation_msg"
-					fi
-				done
-			else
-				warn "Continuing with existing user '$username' (may cause conflicts)"
-			fi
-		fi
 
 		# Get and validate password
 		while true; do
 			read -p "Enter Temporary Password (Default is '1234'): " passw
 			passw="${passw:=1234}"
-
-			if validation_msg=$(validate_password "$passw"); then
-				break
-			else
-				warn "$validation_msg"
-				echo -e "${YEL}Please try again or press Ctrl+C to exit${NC}"
+			
+			if [ ${#passw} -lt 4 ]; then
+				warn "Password too short (minimum 4 characters recommended)"
+				continue
 			fi
+			
+			break
 		done
 
 		echo ""
 
 		# Find available UID
 		info "Checking for available UID..."
-		available_uid=$(find_available_uid "$dscl_path")
-		if [ $? -eq 0 ] && [ "$available_uid" != "501" ]; then
+		available_uid="501"
+		if dscl -f "$dscl_path" localhost -search /Local/Default/Users UniqueID 501 >/dev/null 2>&1; then
+			available_uid="502"
 			info "UID 501 is in use, using UID $available_uid instead"
-		else
-			available_uid="501"
 		fi
 		success "Using UID: $available_uid"
 		echo ""
@@ -309,18 +505,18 @@ select opt in "${options[@]}"; do
 		# Create User with error handling
 		info "Creating user account: $username"
 
-		if ! dscl -f "$dscl_path" localhost -create "/Local/Default/Users/$username" 2>/dev/null; then
+		if ! dscl -f "$dscl_path" localhost -create "/Local/Default/Users/$username" >/dev/null 2>&1; then
 			error_exit "Failed to create user account"
 		fi
 
-		dscl -f "$dscl_path" localhost -create "/Local/Default/Users/$username" UserShell "/bin/zsh" || warn "Failed to set user shell"
-		dscl -f "$dscl_path" localhost -create "/Local/Default/Users/$username" RealName "$realName" || warn "Failed to set real name"
-		dscl -f "$dscl_path" localhost -create "/Local/Default/Users/$username" UniqueID "$available_uid" || warn "Failed to set UID"
-		dscl -f "$dscl_path" localhost -create "/Local/Default/Users/$username" PrimaryGroupID "20" || warn "Failed to set GID"
+		dscl -f "$dscl_path" localhost -create "/Local/Default/Users/$username" UserShell "/bin/zsh" >/dev/null 2>&1 || warn "Failed to set user shell"
+		dscl -f "$dscl_path" localhost -create "/Local/Default/Users/$username" RealName "$realName" >/dev/null 2>&1 || warn "Failed to set real name"
+		dscl -f "$dscl_path" localhost -create "/Local/Default/Users/$username" UniqueID "$available_uid" >/dev/null 2>&1 || warn "Failed to set UID"
+		dscl -f "$dscl_path" localhost -create "/Local/Default/Users/$username" PrimaryGroupID "20" >/dev/null 2>&1 || warn "Failed to set GID"
 
 		user_home="$data_path/Users/$username"
 		if [ ! -d "$user_home" ]; then
-			if mkdir -p "$user_home" 2>/dev/null; then
+			if mkdir -p "$user_home" >/dev/null 2>&1; then
 				success "Created user home directory"
 			else
 				error_exit "Failed to create user home directory: $user_home"
@@ -329,13 +525,13 @@ select opt in "${options[@]}"; do
 			warn "User home directory already exists: $user_home"
 		fi
 
-		dscl -f "$dscl_path" localhost -create "/Local/Default/Users/$username" NFSHomeDirectory "/Users/$username" || warn "Failed to set home directory"
+		dscl -f "$dscl_path" localhost -create "/Local/Default/Users/$username" NFSHomeDirectory "/Users/$username" >/dev/null 2>&1 || warn "Failed to set home directory"
 
-		if ! dscl -f "$dscl_path" localhost -passwd "/Local/Default/Users/$username" "$passw" 2>/dev/null; then
+		if ! dscl -f "$dscl_path" localhost -passwd "/Local/Default/Users/$username" "$passw" >/dev/null 2>&1; then
 			error_exit "Failed to set user password"
 		fi
 
-		if ! dscl -f "$dscl_path" localhost -append "/Local/Default/Groups/admin" GroupMembership "$username" 2>/dev/null; then
+		if ! dscl -f "$dscl_path" localhost -append "/Local/Default/Groups/admin" GroupMembership "$username" >/dev/null 2>&1; then
 			error_exit "Failed to add user to admin group"
 		fi
 
@@ -348,13 +544,13 @@ select opt in "${options[@]}"; do
 		hosts_file="$system_path/etc/hosts"
 		if [ ! -f "$hosts_file" ]; then
 			warn "Hosts file does not exist, creating it"
-			touch "$hosts_file" || error_exit "Failed to create hosts file"
+			touch "$hosts_file" >/dev/null 2>&1 || error_exit "Failed to create hosts file"
 		fi
 
 		# Check if entries already exist to avoid duplicates
-		grep -q "deviceenrollment.apple.com" "$hosts_file" 2>/dev/null || echo "0.0.0.0 deviceenrollment.apple.com" >>"$hosts_file"
-		grep -q "mdmenrollment.apple.com" "$hosts_file" 2>/dev/null || echo "0.0.0.0 mdmenrollment.apple.com" >>"$hosts_file"
-		grep -q "iprofiles.apple.com" "$hosts_file" 2>/dev/null || echo "0.0.0.0 iprofiles.apple.com" >>"$hosts_file"
+		grep -q "deviceenrollment.apple.com" "$hosts_file" 2>/dev/null || echo "0.0.0.0 deviceenrollment.apple.com" >> "$hosts_file"
+		grep -q "mdmenrollment.apple.com" "$hosts_file" 2>/dev/null || echo "0.0.0.0 mdmenrollment.apple.com" >> "$hosts_file"
+		grep -q "iprofiles.apple.com" "$hosts_file" 2>/dev/null || echo "0.0.0.0 iprofiles.apple.com" >> "$hosts_file"
 
 		success "MDM domains blocked in hosts file"
 		echo ""
@@ -366,7 +562,7 @@ select opt in "${options[@]}"; do
 
 		# Create config directory if it doesn't exist
 		if [ ! -d "$config_path" ]; then
-			if mkdir -p "$config_path" 2>/dev/null; then
+			if mkdir -p "$config_path" >/dev/null 2>&1; then
 				success "Created configuration directory"
 			else
 				warn "Could not create configuration directory"
@@ -374,15 +570,15 @@ select opt in "${options[@]}"; do
 		fi
 
 		# Mark setup as done
-		touch "$data_path/private/var/db/.AppleSetupDone" 2>/dev/null && success "Marked setup as complete" || warn "Could not mark setup as complete"
+		touch "$data_path/private/var/db/.AppleSetupDone" >/dev/null 2>&1 && success "Marked setup as complete" || warn "Could not mark setup as complete"
 
 		# Remove activation records
-		rm -rf "$config_path/.cloudConfigHasActivationRecord" 2>/dev/null && success "Removed activation record" || info "No activation record to remove"
-		rm -rf "$config_path/.cloudConfigRecordFound" 2>/dev/null && success "Removed cloud config record" || info "No cloud config record to remove"
+		rm -rf "$config_path/.cloudConfigHasActivationRecord" >/dev/null 2>&1 && success "Removed activation record" || info "No activation record to remove"
+		rm -rf "$config_path/.cloudConfigRecordFound" >/dev/null 2>&1 && success "Removed cloud config record" || info "No cloud config record to remove"
 
 		# Create bypass markers
-		touch "$config_path/.cloudConfigProfileInstalled" 2>/dev/null && success "Created profile installed marker" || warn "Could not create profile marker"
-		touch "$config_path/.cloudConfigRecordNotFound" 2>/dev/null && success "Created record not found marker" || warn "Could not create not found marker"
+		touch "$config_path/.cloudConfigProfileInstalled" >/dev/null 2>&1 && success "Created profile installed marker" || warn "Could not create profile marker"
+		touch "$config_path/.cloudConfigRecordNotFound" >/dev/null 2>&1 && success "Created record not found marker" || warn "Could not create not found marker"
 
 		echo ""
 		echo -e "${GRN}╔═══════════════════════════════════════════════╗${NC}"
