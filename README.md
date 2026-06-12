@@ -2,38 +2,93 @@
 
 ![mdm-screen](https://raw.githubusercontent.com/assafdori/bypass-mdm/main/mdm-screen.png)
 
-A script to bypass Mobile Device Management (MDM) enrollment during macOS setup.
+A collection of scripts to bypass Mobile Device Management (MDM) enrollment during macOS setup.
 
-## 🚨 Update: February 3, 2026
+**Choose your script:**
 
-**Version 2 Now Available!** Due to the high number of requests and repreated issues reported, I've released a new version of the script with significant improvements:
-
-### What's New in v2:
-
-- **Automatic Volume Detection** - No longer requires specific volume names like "Macintosh HD"
-- **Comprehensive Error Handling** - Clear error messages and validation at every step
-- **Input Validation** - Validates usernames and passwords to prevent common mistakes
-- **UID Conflict Detection** - Automatically finds available UIDs to avoid conflicts
-- **Better User Experience** - Color-coded output, progress indicators, and helpful feedback
-
-The instructions below use **v2 by default** (recommended). If you experience issues, you can still use the original version by replacing `bypass-mdm-v2.sh` with `bypass-mdm.sh` in the commands.
+| Script | Best for | Run from |
+|--------|----------|----------|
+| `bypass-mdm-express.sh` | **Recommended.** All-in-one: backup + bypass + restore | Recovery |
+| `bypass-mdm-v3.sh` | Apple Silicon / macOS 11-26. SSV-aware. | Recovery |
+| `bypass-mdm-v2.sh` | Enhanced with auto-detection & validation | Recovery |
+| `bypass-mdm.sh` | Legacy, hardcoded volume names | Recovery |
+| `bypass-mdm-dualboot.sh` | Dual-boot (enrolled + personal macOS) | Enrolled OS (sudo) |
 
 ---
 
-## ✨ Features
+## 🚀 Express — All-in-one (Recommended)
 
-- **🔍 Smart Volume Detection** - Automatically detects system and data volumes regardless of custom names
-- **✅ Input Validation** - Validates usernames and passwords to prevent common errors
-- **🛡️ Comprehensive Error Handling** - Clear error messages guide you through any issues
-- **🎯 UID Conflict Resolution** - Automatically finds available user IDs to avoid conflicts
-- **📊 Real-time Progress** - Color-coded status messages show exactly what's happening
-- **🔄 Duplicate Prevention** - Checks for existing entries to avoid duplicates
+Put this script on an external SSD, plug it into any Mac, run it from Recovery. No curl, no typing URLs, no downloads. Works entirely offline.
+
+**What it does:**
+1. Backs up your original state (hosts, config profiles, launchd config) to the SSD
+2. Suppresses MDM enrollment (blocks domains, resets markers, disables daemon)
+3. Can restore the original state later — take your Mac to Apple for re-enrollment, then restore
+
+```bash
+# Recovery mode -> Utilities -> Terminal
+chmod +x "/Volumes/YourSSDName/bypass-mdm-express.sh"
+"/Volumes/YourSSDName/bypass-mdm-express.sh"
+```
+
+The backup is stored on the SSD itself (`/.bypass-backup/`). To restore, re-run and pick "Restore original state".
+
+---
+
+### v3 — Apple Silicon / SSV-aware
+
+v3 fixes the root cause of why v1/v2 fail on modern Macs: **System Volume sealing**. On Apple Silicon, macOS boots from a sealed, read-only snapshot. Writes to `/etc/hosts` or `/var/db/ConfigurationProfiles` on the System volume never reach the running OS. v3 writes everything to the **Data volume** (via `/private` firmlink) where the OS actually reads it.
+
+**Additional improvements:**
+- Detects Data volume by APFS role (no hardcoded names)
+- Supports FileVault-encrypted volumes (unlocks automatically)
+- Reads the org MDM host from the activation record and blocks it
+- Disables the enrollment daemon via launchd override on the Data volume
+- Two modes: suppress-only (no user created) or full bypass
+- Leaves `gdmf.apple.com` and `albert.apple.com` unblocked (Software Update, iMessage)
+
+```bash
+# Run in Recovery mode (Utilities > Terminal)
+curl -L https://raw.githubusercontent.com/assafdori/bypass-mdm/main/bypass-mdm-v3.sh -o bypass-mdm-v3.sh && chmod +x bypass-mdm-v3.sh && ./bypass-mdm-v3.sh
+```
+
+---
+
+### v2 — Automatic volume detection
+
+Enhanced version with dynamic volume detection. No need to know your volume name. SSV-aware — writes to Data volume paths.
+
+```bash
+curl -L https://raw.githubusercontent.com/assafdori/bypass-mdm/main/bypass-mdm-v2.sh -o bypass-mdm.sh && chmod +x ./bypass-mdm.sh && ./bypass-mdm.sh
+```
+
+---
+
+### Original (legacy) — Hardcoded volumes
+
+Original version with hardcoded "Macintosh HD" volume names.
+
+```bash
+curl -L https://raw.githubusercontent.com/assafdori/bypass-mdm/main/bypass-mdm.sh -o bypass-mdm.sh && chmod +x ./bypass-mdm.sh && ./bypass-mdm.sh
+```
+
+---
+
+### Dual-boot setup
+
+If your Mac is enrolled by an organization but you have sudo access, you can create a separate partition with a fresh macOS install and bypass MDM on it:
+
+```bash
+curl -L https://raw.githubusercontent.com/assafdori/bypass-mdm/main/bypass-mdm-dualboot.sh -o bypass-mdm-dualboot.sh && sudo chmod +x bypass-mdm-dualboot.sh && sudo ./bypass-mdm-dualboot.sh
+```
+
+---
 
 ## ⚠️ Prerequisites
 
 - **It is strongly recommended to erase the hard drive prior to starting**
 - **It is recommended to reinstall macOS using an external flash drive**
-- **English language recommended** (not required for v2, but recommended)
+- **English language recommended** (not required for v2+, but recommended)
 
 ## 📋 Installation & Usage
 
@@ -47,7 +102,7 @@ Follow these steps to bypass MDM enrollment during a fresh macOS installation:
 
 **2.** **Boot into Recovery Mode:**
 
-- **Apple Silicon Mac**: Hold Power button until "Loading startup options" appears
+- **Apple Silicon Mac**: Hold Power button until "Loading startup options" appears, then Options > Continue
 - **Intel-based Mac**: Hold <kbd>CMD</kbd> + <kbd>R</kbd> during boot
 
 **3.** **Connect to WiFi** to activate your Mac
@@ -65,7 +120,7 @@ curl -L https://raw.githubusercontent.com/assafdori/bypass-mdm/main/bypass-mdm-v
 
 **6.** **Volume Detection** - The script will automatically detect your volumes:
 
-- System Volume (e.g., "Macintosh HD", "MacOS", or your custom name)
+- System Volume (e.g., "Macintosh HD", "macOS", or your custom name)
 - Data Volume (e.g., "Data", "Macintosh HD - Data", or your custom name)
 
 **7.** **Select Option 1** - "Bypass MDM from Recovery"
@@ -76,7 +131,7 @@ curl -L https://raw.githubusercontent.com/assafdori/bypass-mdm/main/bypass-mdm-v
 - **Username**: Apple (default)
 - **Password**: 1234 (default)
 
-> 💡 **Tip:** The script validates your input and will prompt you to retry if there are issues
+> **Tip:** The script validates your input and will prompt you to retry if there are issues
 
 **9.** **Wait for Completion** - You'll see progress messages:
 
@@ -171,10 +226,13 @@ chmod +x bypass-mdm.sh
 
 ## 📦 Version Information
 
-| Version            | Description                                       | Status             |
-| ------------------ | ------------------------------------------------- | ------------------ |
-| `bypass-mdm-v2.sh` | Enhanced version with auto-detection & validation | ✅ **Recommended** |
-| `bypass-mdm.sh`    | Original version with hardcoded volume names      | ⚠️ Legacy          |
+| Version | Description | Status |
+|---------|-------------|--------|
+| `bypass-mdm-express.sh` | All-in-one backup + bypass + restore | ✅ **Recommended** |
+| `bypass-mdm-v3.sh` | Most robust, SSV-aware, FileVault support | ✅ **Recommended for Apple Silicon** |
+| `bypass-mdm-v2.sh` | Enhanced with auto-detection & validation | ✅ **Recommended** |
+| `bypass-mdm.sh` | Original version with hardcoded volume names | ⚠️ Legacy |
+| `bypass-mdm-dualboot.sh` | Dual-boot MDM bypass | 🔧 Special use |
 
 ### ❤️ Optional Contributions
 
@@ -199,6 +257,8 @@ bc1qzguh4908r7wguz20ylzeggya9d38t6hega5ppf
 > **Important:** Although it's virtually impossible to detect that you've removed MDM (because it was never configured locally), be aware that your device's serial number will still appear in your organization's inventory system. This script prevents MDM from being configured locally, making the device unmanageable remotely.
 >
 > **Use responsibly and at your own risk.** This tool is intended for personal devices and should not be used to circumvent legitimate organizational policies without proper authorization.
+>
+> This only suppresses MDM locally. Your serial stays in the org's Apple Business Manager. The permanent fix is them releasing it.
 
 ---
 
