@@ -1,207 +1,180 @@
 # Bypass MDM for macOS 💻
 
-![mdm-screen](https://raw.githubusercontent.com/assafdori/bypass-mdm/main/mdm-screen.png)
+A script to bypass Mobile Device Management (MDM) enrollment during macOS setup, with APFS System/Data volume targeting for internal and external macOS installations.
 
-A script to bypass Mobile Device Management (MDM) enrollment during macOS setup.
+## 💽 APFS Volume Highlights
 
-## 🚨 Update: February 3, 2026
-
-**Version 2 Now Available!** Due to the high number of requests and repreated issues reported, I've released a new version of the script with significant improvements:
-
-### What's New in v2:
-
-- **Automatic Volume Detection** - No longer requires specific volume names like "Macintosh HD"
-- **Comprehensive Error Handling** - Clear error messages and validation at every step
-- **Input Validation** - Validates usernames and passwords to prevent common mistakes
-- **UID Conflict Detection** - Automatically finds available UIDs to avoid conflicts
-- **Better User Experience** - Color-coded output, progress indicators, and helpful feedback
-
-The instructions below use **v2 by default** (recommended). If you experience issues, you can still use the original version by replacing `bypass-mdm-v2.sh` with `bypass-mdm.sh` in the commands.
-
----
+- **External macOS Support** - Select an external macOS installation without modifying the internal system
+- **Real APFS Role Detection** - Only APFS System volumes appear in the menu; Data volumes cannot be selected manually
+- **Automatic Data Volume Matching** - Matches the Data volume through the APFS Volume Group ID
+- **Internal/External Labels** - Clearly identifies where each macOS System volume is located
+- **SSV-Aware Writes** - Writes hosts and configuration markers to the selected Data volume paths used by modern macOS
+- **Interactive Menus** - Use the Up/Down arrow keys and Enter for all fixed choices
+- **Back Navigation** - Press Esc or choose Back to return before any target-volume changes begin
+- **Final Review** - Review the selected volumes, account details, UID, and plaintext password before execution
+- **Safe UI Demo** - Preview the complete workflow with simulated data and no disk, account, file, or reboot operations
+- **External Drive Guard** - `--require-external` refuses to operate on an internal installation
+- **Validation Mode** - `--validate-only` checks the selected volume pair without making changes
+- **No Volume Renaming** - Keeps the original System and Data volume names
 
 ## ✨ Features
 
-- **🔍 Smart Volume Detection** - Automatically detects system and data volumes regardless of custom names
-- **✅ Input Validation** - Validates usernames and passwords to prevent common errors
-- **🛡️ Comprehensive Error Handling** - Clear error messages guide you through any issues
-- **🎯 UID Conflict Resolution** - Automatically finds available user IDs to avoid conflicts
-- **📊 Real-time Progress** - Color-coded status messages show exactly what's happening
-- **🔄 Duplicate Prevention** - Checks for existing entries to avoid duplicates
+- Creates a temporary administrator account
+- Validates usernames, passwords, system paths, and available UIDs
+- Blocks MDM enrollment domains
+- Configures setup and enrollment markers
+- Detects duplicate users and conflicting UIDs
+- Revalidates the selected System/Data pair before writing
+- Shows clear progress, warning, and error messages
+- Tested successfully on macOS Tahoe 26.5.1 with an external APFS System/Data volume pair
 
 ## ⚠️ Prerequisites
 
-- **It is strongly recommended to erase the hard drive prior to starting**
-- **It is recommended to reinstall macOS using an external flash drive**
-- **English language recommended** (not required for v2, but recommended)
+- Use only on a Mac you own or are explicitly authorized to manage
+- Run the script from macOS Recovery Terminal
+- Connect to the internet before downloading the script
+- Ensure the target APFS System and Data volumes are mounted
+- A fresh macOS installation is recommended
+
+## 👀 Preview the UI Safely
+
+Download the script and start the isolated demo mode from a normal macOS Terminal:
+
+```bash
+curl -fL https://raw.githubusercontent.com/assafdori/bypass-mdm/main/bypass-mdm-v2.sh -o bypass-mdm.sh && chmod +x bypass-mdm.sh && ./bypass-mdm.sh --demo
+```
+
+Demo mode shows the disk menu, Back navigation, account prompts, plaintext password, final review, execution messages, and reboot confirmation. It uses simulated `Macintosh HD` and `GoldenGate` volumes and does not inspect or modify the real Mac.
 
 ## 📋 Installation & Usage
 
 ### Step-by-Step Instructions
 
-Follow these steps to bypass MDM enrollment during a fresh macOS installation:
+**1. Boot into Recovery Mode**
 
-> **Starting Point:** You've reached the MDM enrollment screen during macOS setup
+- **Apple Silicon Mac:** Hold the Power button until startup options appear
+- **Intel Mac:** Hold <kbd>Command</kbd> + <kbd>R</kbd> during startup
 
-**1.** **Force Shutdown** - Long press the Power button to shut down your Mac
+**2. Connect to Wi-Fi**
 
-**2.** **Boot into Recovery Mode:**
+**3. Open Terminal** from **Utilities > Terminal**
 
-- **Apple Silicon Mac**: Hold Power button until "Loading startup options" appears
-- **Intel-based Mac**: Hold <kbd>CMD</kbd> + <kbd>R</kbd> during boot
+**4. Download and run the script**
 
-**3.** **Connect to WiFi** to activate your Mac
-
-**4.** **Open Terminal** in Recovery Mode:
-
-- Click **Utilities** in the menu bar
-- Select **Terminal**
-
-**5.** **Run the bypass script** - Copy and paste this command into Terminal:
+For an external macOS installation:
 
 ```bash
-curl -L https://raw.githubusercontent.com/assafdori/bypass-mdm/main/bypass-mdm-v2.sh -o bypass-mdm.sh && chmod +x ./bypass-mdm.sh && ./bypass-mdm.sh
+curl -fL https://raw.githubusercontent.com/assafdori/bypass-mdm/main/bypass-mdm-v2.sh -o bypass-mdm.sh && chmod +x bypass-mdm.sh && ./bypass-mdm.sh --require-external
 ```
 
-**6.** **Volume Detection** - The script will automatically detect your volumes:
-
-- System Volume (e.g., "Macintosh HD", "MacOS", or your custom name)
-- Data Volume (e.g., "Data", "Macintosh HD - Data", or your custom name)
-
-**7.** **Select Option 1** - "Bypass MDM from Recovery"
-
-**8.** **Create Temporary User** - Configure the admin account (or press Enter for defaults):
-
-- **Fullname**: Apple (default)
-- **Username**: Apple (default)
-- **Password**: 1234 (default)
-
-> 💡 **Tip:** The script validates your input and will prompt you to retry if there are issues
-
-**9.** **Wait for Completion** - You'll see progress messages:
-
-- ✓ Validating system paths
-- ✓ Creating user account
-- ✓ Blocking MDM domains
-- ✓ Configuring MDM bypass settings
-
-**10.** **Reboot** - When you see "MDM Bypass Completed Successfully", close Terminal and reboot
-
----
-
-### 🔄 Post-Installation Steps
-
-**11.** **Login** with the temporary account:
-
-- Username: `Apple` (or your custom username)
-- Password: `1234` (or your custom password)
-
-**12.** **Skip Setup** - Skip all prompts (Apple ID, Siri, Touch ID, Location Services)
-
-**13.** **Create Real Account:**
-
-- Navigate to **System Settings > Users and Groups**
-- Create your actual Admin account with your preferred credentials
-
-**14.** **Switch Accounts** - Log out and sign in to your new account
-
-**15.** **Setup Properly** - Now configure Apple ID, Siri, Touch ID, etc.
-
-**16.** **Clean Up** - Delete the temporary Apple profile:
-
-- Go to **System Settings > Users and Groups**
-- Select the Apple profile and click the minus (−) button
-
-**17.** **🎉 Done!** You're MDM free!
-
----
-
-## 🔧 Troubleshooting
-
-### Volume Detection Issues
-
-**Problem:** Script fails to detect volumes
-
-**Solutions:**
-
-- Ensure you're in Recovery Mode (not booted into macOS normally)
-- Verify macOS is installed on your drive
-- Check your drive is visible in Disk Utility
-- Try the original version (legacy, hardcoded volume names):
+To allow either an internal or external installation, omit `--require-external`:
 
 ```bash
-curl -L https://raw.githubusercontent.com/assafdori/bypass-mdm/main/bypass-mdm.sh -o bypass-mdm.sh && chmod +x ./bypass-mdm.sh && ./bypass-mdm.sh
-```
-
-### Permission Errors
-
-**Problem:** Permission denied errors
-
-**Solutions:**
-
-- Confirm you're running from Terminal in Recovery Mode
-- Recovery Mode automatically provides elevated privileges
-- Make sure the script is executable: `chmod +x bypass-mdm.sh`
-
-### Script Won't Execute
-
-**Problem:** Script doesn't run
-
-**Solutions:**
-
-```bash
-# Make sure it's executable
-chmod +x bypass-mdm.sh
-
-# Run it again
 ./bypass-mdm.sh
 ```
 
+**5. Select the macOS System volume**
+
+Use the Up/Down arrow keys to move the highlight and press Enter. Press Esc on later menus to return to the previous step:
+
+```text
+   Macintosh HD [Internal]
+ > GoldenGate [External]
+```
+
+Only APFS System volumes are listed. The matching Data volume is detected automatically and verified through its APFS Volume Group ID.
+
+**6. Choose "Bypass MDM from Recovery"**
+
+**7. Create the temporary administrator account**
+
+Press Enter to use the defaults:
+
+- **Full name:** Apple
+- **Username:** Apple
+- **Password:** 1234
+
+Password entry is visible.
+
+**8. Review and confirm all settings**
+
+Before any target-volume changes are made, the script displays:
+
+- System and Data volume names and paths
+- Internal/External location and APFS Volume Group ID
+- Directory Services path
+- Full name, username, and plaintext password
+- Account status, UID, group ID, shell, and home directory
+- A list of planned changes
+
+From this page you can edit the account, change the System volume, return to the action menu, or exit without changes. Only **Confirm and Run** starts writing to the selected volumes. Once writing starts, the wizard cannot take those changes back.
+
+**9. Reboot and sign in**
+
+When the completion message appears, close Terminal and reboot the Mac.
+
+## 🧪 Validate Without Changes
+
+To verify external System/Data volume detection without modifying any files:
+
+```bash
+./bypass-mdm.sh --require-external --validate-only
+```
+
+The script stops safely if:
+
+- The selected volume is not external
+- The System or Data volume is not mounted
+- The selected volume does not have the correct APFS role
+- The System and Data volumes are not in the same APFS Volume Group
+- The selected volume group changes before writing
+
+## 🔄 Post-Installation Steps
+
+1. Sign in with the temporary administrator account.
+2. Skip the remaining Setup Assistant prompts if needed.
+3. Open **System Settings > Users & Groups**.
+4. Create your permanent administrator account.
+5. Sign in to the permanent account.
+6. Remove the temporary account when it is no longer needed.
+
+## 🔧 Troubleshooting
+
+### No System Volumes Listed
+
+- Confirm the target macOS installation is mounted in Disk Utility
+- Confirm the volume has the APFS System role
+- Unlock encrypted volumes before running the script
+- Do not select or rename the Data volume manually
+
+### Matching Data Volume Not Found
+
+- Mount the corresponding Data volume in Disk Utility
+- Confirm macOS installation has completed on the target drive
+- Verify the System and Data volumes belong to the same APFS Volume Group
+
+### Permission Errors
+
+- Confirm the script is running from macOS Recovery Terminal
+- Make the script executable with `chmod +x bypass-mdm.sh`
+
 ### Invalid Username or Password
 
-**Problem:** Script rejects your username/password
+- Username must start with a letter or underscore
+- Username may contain letters, numbers, underscores, and hyphens
+- Password must contain at least four characters
 
-**Validation Rules:**
+## 📦 Versions
 
-- **Username:** Letters, numbers, underscore, hyphen only; must start with letter or underscore
-- **Password:** Minimum 4 characters
-- Press Enter to use defaults if unsure
-
----
-
-## 📦 Version Information
-
-| Version            | Description                                       | Status             |
-| ------------------ | ------------------------------------------------- | ------------------ |
-| `bypass-mdm-v2.sh` | Enhanced version with auto-detection & validation | ✅ **Recommended** |
-| `bypass-mdm.sh`    | Original version with hardcoded volume names      | ⚠️ Legacy          |
-
-### ❤️ Optional Contributions
-
-Many people have reached out asking how to say thank you for saving their Mac. **This is completely optional and not expected!** If you'd like to contribute, crypto donations are appreciated.
-
-People have forked this repository and put the script behind a pay-wall. I do not care at all. Once again, crypto contributions are not expected, but feel free if you want to.
-
-**Bitcoin (BTC):**
-
-```
-bc1qzguh4908r7wguz20ylzeggya9d38t6hega5ppf
-```
-
-**Monero (XMR):**
-
-```
-45RnFseY4gNZv58DvShz2KJEbx1EyaTtaMCDnU5th21KbRThWurjjK6iugEdq9wfc4Kbw3a7AAyqo6WnEmL1StAMJur8QJp
-```
+| File | Description | Status |
+| --- | --- | --- |
+| `bypass-mdm-v2.sh` | APFS role detection, external-drive support, SSV-aware Data-volume writes, validation, and interactive menus | Recommended |
+| `bypass-mdm.sh` | Original legacy script with hardcoded volume names | Legacy |
 
 ## ⚖️ Legal Disclaimer
 
-> **Important:** Although it's virtually impossible to detect that you've removed MDM (because it was never configured locally), be aware that your device's serial number will still appear in your organization's inventory system. This script prevents MDM from being configured locally, making the device unmanageable remotely.
->
-> **Use responsibly and at your own risk.** This tool is intended for personal devices and should not be used to circumvent legitimate organizational policies without proper authorization.
-
----
+This project is intended for personal devices, authorized administration, and educational use. Do not use it to bypass legitimate organizational controls without permission. Use at your own risk.
 
 ## 📄 License
 
-This project is provided as-is for educational purposes. Use at your own discretion.
+Released under the MIT License. The original copyright and permission notice are preserved in [LICENSE](LICENSE).
