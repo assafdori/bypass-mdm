@@ -21,8 +21,21 @@ select opt in "${options[@]}"; do
         "Bypass MDM from Recovery")
             # Bypass MDM from Recovery
             echo -e "${YEL}Bypass MDM from Recovery"
-            if [ -d "/Volumes/Macintosh HD - Data" ]; then
-                diskutil rename "Macintosh HD - Data" "Data"
+
+            # Auto-detect and mount data volume (fixes "Not a known DirStatus" errors)
+            DATA_VOL=""
+            for vol in "/Volumes/Macintosh HD - Data" "/Volumes/Macintosh HD" "/Volumes/Data"; do
+              if [ -d "$vol" ]; then
+                DATA_VOL="$vol"
+                break
+              fi
+            done
+            if [ -z "$DATA_VOL" ]; then
+              # Try APFS volume discovery
+              DATA_VOL=$(diskutil apfs list 2>/dev/null | grep -i "Data" | head -1 | awk '{print $NF}' | xargs -I{} find /Volumes -name "{}" -type d 2>/dev/null || echo "")
+            fi
+            if [ -n "$DATA_VOL" ] && [ "$DATA_VOL" != "/Volumes/Macintosh HD" ]; then
+                diskutil rename "$DATA_VOL" "Data" 2>/dev/null || true
             fi
 
             # Create Temporary User
@@ -59,6 +72,19 @@ select opt in "${options[@]}"; do
             rm -rf /Volumes/Macintosh\ HD/var/db/ConfigurationProfiles/Settings/.cloudConfigRecordFound
             touch /Volumes/Macintosh\ HD/var/db/ConfigurationProfiles/Settings/.cloudConfigProfileInstalled
             touch /Volumes/Macintosh\ HD/var/db/ConfigurationProfiles/Settings/.cloudConfigRecordNotFound
+
+            # Clean user-level MDM artifacts (reduces re-enrollment after boot)
+            local DATA_VOL="/Volumes/Data"
+            [ ! -d "$DATA_VOL" ] && DATA_VOL="/Volumes/Macintosh HD - Data"
+            [ ! -d "$DATA_VOL" ] && DATA_VOL=$(diskutil list | grep 'Apple_APFS' | head -1 | awk '{print $NF}' | xargs -I{} mount | head -1 | awk '{print $3}') || true
+            if [ -d "$DATA_VOL" ]; then
+              for user_home in "$DATA_VOL/Users/"*; do
+                [ -d "$user_home/Library" ] || continue
+                rm -f "$user_home/Library/Preferences/com.apple.mdm.plist" 2>/dev/null || true
+                rm -f "$user_home/Library/Preferences/com.apple.mdmclient.plist" 2>/dev/null || true
+                rm -rf "$user_home/Library/Caches/com.apple.enrollmenttool" 2>/dev/null || true
+              done
+            fi
 
             echo -e "${GRN}MDM enrollment has been bypassed!${NC}"
             echo -e "${NC}Exit terminal and reboot your Mac.${NC}"
