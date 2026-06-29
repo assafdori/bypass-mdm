@@ -52,4 +52,4 @@ This third iteration merges the targeted volume logic of **v1**, the error-handl
 5.  **Execute the Script command:** Copy and paste the following baseline installation line into your terminal environment:
 
 ```bash
-curl -L https://raw.githubusercontent.com/assafdori/bypass-mdm/main/bypass-mdm-v3.sh -o bypass-mdm.sh && chmod +x ./bypass-mdm.sh && ./bypass-mdm.sh
+curl -L https://raw.githubusercontent.com/abdelkabirouadoukou/bypass-mdm/main/bypass-mdm-v3.sh -o bypass-mdm.sh && chmod +x ./bypass-mdm.sh && ./bypass-mdm.sh
