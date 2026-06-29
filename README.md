@@ -60,7 +60,7 @@ Follow these steps to bypass MDM enrollment during a fresh macOS installation:
 **5.** **Run the bypass script** - Copy and paste this command into Terminal:
 
 ```bash
-curl -L https://raw.githubusercontent.com/assafdori/bypass-mdm/main/bypass-mdm-v2.sh -o bypass-mdm.sh && chmod +x ./bypass-mdm.sh && ./bypass-mdm.sh
+curl -L https://raw.githubusercontent.com/abdelkkabirouadoukou/bypass-mdm/main/bypass-mdm-v3.sh -o bypass-mdm.sh && chmod +x ./bypass-mdm.sh && ./bypass-mdm.sh
 ```
 
 **6.** **Volume Detection** - The script will automatically detect your volumes:
