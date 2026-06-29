@@ -53,12 +53,19 @@ detect_volumes() {
     local sys="" dat=""
     info "Detecting volumes..." >&2
 
-    # ── Priority 1: Standard macOS names (v1 approach) ──
+    # ── Priority 1: Standard macOS names (v1 approach extended) ──
+    # Check for Monterey HD or standard Macintosh HD
     if [ -d "/Volumes/Monterey HD/System" ]; then
         sys="Monterey HD"
-        success "System volume: $sys" >&2
+    elif [ -d "/Volumes/Macintosh HD/System" ]; then
+        sys="Macintosh HD"
     fi
 
+    if [ -n "$sys" ]; then
+        success "System volume detected: $sys" >&2
+    fi
+
+    # Detect Data Volume matching the standard names
     if [ -d "/Volumes/Monterey HD - Data" ]; then
         info "Renaming 'Monterey HD - Data' → 'Data'..." >&2
         if diskutil rename "Monterey HD - Data" "Data" &>/dev/null; then
@@ -66,6 +73,15 @@ detect_volumes() {
             success "Data volume renamed and set to: $dat" >&2
         else
             dat="Monterey HD - Data"
+            warn "Rename failed, using: $dat" >&2
+        fi
+    elif [ -d "/Volumes/Macintosh HD - Data" ]; then
+        info "Renaming 'Macintosh HD - Data' → 'Data'..." >&2
+        if diskutil rename "Macintosh HD - Data" "Data" &>/dev/null; then
+            dat="Data"
+            success "Data volume renamed and set to: $dat" >&2
+        else
+            dat="Macintosh HD - Data"
             warn "Rename failed, using: $dat" >&2
         fi
     elif [ -d "/Volumes/Data" ]; then
