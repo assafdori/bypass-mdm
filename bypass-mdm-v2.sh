@@ -173,6 +173,36 @@ detect_volumes() {
 	echo "$system_vol|$data_vol"
 }
 
+# Unlock any FileVault-locked APFS Data volume so /Volumes/<Data> is mounted
+# before detect_volumes runs. Without this, an encrypted+locked Data volume is
+# never mounted in Recovery and all downstream paths silently fail.
+unlock_data_volume() {
+	# Already have a mounted Data volume? Nothing to do.
+	for v in /Volumes/*; do
+		[ -d "$v/private/var/db/ConfigurationProfiles" ] && return 0
+	done
+
+	# Find the Data-role APFS device (e.g. disk3s3), matched by role, not by
+	# a hardcoded identifier (the id differs between normal boot and Recovery).
+	local dev
+	dev=$(diskutil apfs list 2>/dev/null \
+		| awk '/\(Data\)/{for(i=1;i<=NF;i++) if($i ~ /^disk[0-9]+s[0-9]+$/){print $i; exit}}')
+
+	if [ -z "$dev" ]; then
+		warn "No Data-role APFS volume found; assuming it is already mounted." >&2
+		return 0
+	fi
+
+	info "Attempting to unlock/mount Data volume ($dev)..." >&2
+	warn "If prompted, enter the password of an admin account on this Mac." >&2
+	# Try a plain mount first; if it is FileVault-locked, unlock it.
+	diskutil mount "$dev" 2>/dev/null || diskutil apfs unlockVolume "$dev" 2>/dev/null \
+		|| warn "Could not auto-unlock $dev; continuing (volume may already be mounted)." >&2
+}
+
+# Unlock the Data volume (if locked) before detecting volumes
+unlock_data_volume
+
 # Detect volumes at startup
 volume_info=$(detect_volumes)
 system_volume=$(echo "$volume_info" | cut -d'|' -f1)
@@ -376,9 +406,18 @@ select opt in "${options[@]}"; do
 		# Mark setup as done
 		touch "$data_path/private/var/db/.AppleSetupDone" 2>/dev/null && success "Marked setup as complete" || warn "Could not mark setup as complete"
 
-		# Remove activation records
-		rm -rf "$config_path/.cloudConfigHasActivationRecord" 2>/dev/null && success "Removed activation record" || info "No activation record to remove"
-		rm -rf "$config_path/.cloudConfigRecordFound" 2>/dev/null && success "Removed cloud config record" || info "No cloud config record to remove"
+		# Remove activation + DEP markers (full set — leaving any of the
+		# timer/nag files behind makes the "Enroll in Device Management"
+		# badge reappear after reboot or on the next DEP check).
+		for marker in \
+			.cloudConfigHasActivationRecord \
+			.cloudConfigRecordFound \
+			.cloudConfigTimerCheck \
+			.profilesDEPTimerCheck \
+			com.apple.mdm.depnag.plist
+		do
+			rm -rf "$config_path/$marker" 2>/dev/null && success "Removed $marker" || info "No $marker to remove"
+		done
 
 		# Create bypass markers
 		touch "$config_path/.cloudConfigProfileInstalled" 2>/dev/null && success "Created profile installed marker" || warn "Could not create profile marker"
